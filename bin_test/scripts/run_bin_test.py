@@ -19,9 +19,18 @@ import sys
 import time
 import os
 
-# 默认配置文件路径
-DEFAULT_CONFIG_FILE = "~/test_script/res_ctrl/bin_res.txt"
-DEFAULT_SIGLED_FILE = "~/test_script/res_ctrl/bin_res_sigled.txt"
+# Skill scripts 目录路径
+PROGRAMMABLE_RESISTOR_SCRIPTS = "~/.claude/skills/programmable-resistor/scripts/res_ctrl"
+POWER_SUPPLY_SCRIPTS = "~/.claude/skills/power-supply/scripts/power_ctrl"
+OSCILLOSCOPE_SCRIPTS = "~/.claude/skills/oscilloscope/scripts/yokogawa"
+
+# 配置文件和测试结果目录
+CONFIG_DIR = "~/.claude/skills/bin_test/config"
+RESULTS_DIR = "~/.claude/skills/bin_test/result"
+
+# 默认配置文件路径 (skill/config 目录)
+DEFAULT_CONFIG_FILE = f"{CONFIG_DIR}/bin_res_lbhb.txt"
+DEFAULT_SIGLED_FILE = f"{CONFIG_DIR}/bin_res_sigled.txt"
 
 # LED 类型配置
 LED_TYPES = {
@@ -108,24 +117,34 @@ def set_resistance(port: str, ohms: int) -> bool:
     Note: 此函数调用底层脚本，实际使用时应通过 @programmable-resistor skill 执行
     """
     print(f"  设置电阻: {ohms}Ω")
-    cmd = f"cd ~/test_script/res_ctrl && uv run resistance_cli.py -p {port} -v {ohms}"
+    scripts_path = os.path.expanduser(PROGRAMMABLE_RESISTOR_SCRIPTS)
+    cmd = f"cd {scripts_path} && uv run resistance_cli.py -p {port} -v {ohms}"
     return run_command(cmd)
 
 
-def power_cycle(port: str, voltage: float = 13.5) -> bool:
+def power_cycle(visa_address: str = None, voltage: float = 13.5) -> bool:
     """电源上下电
+
+    Args:
+        visa_address: VISA 资源地址 (留空则自动搜索第一个设备)
+        voltage: 设置电压值 (V)
 
     Note: 此函数调用底层脚本，实际使用时应通过 @power-supply skill 执行
     """
+    scripts_path = os.path.expanduser(POWER_SUPPLY_SCRIPTS)
+
+    # 构建命令（添加 VISA 地址参数）
+    addr_arg = f"-a {visa_address}" if visa_address else ""
+
     print("  关闭电源...")
-    off_cmd = f"cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -o off"
+    off_cmd = f"cd {scripts_path} && uv run power_ctrl_cli.py {addr_arg} -o off"
     if not run_command(off_cmd):
         return False
 
     time.sleep(2)
 
     print("  打开电源...")
-    on_cmd = f"cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -v {voltage} -o on"
+    on_cmd = f"cd {scripts_path} && uv run power_ctrl_cli.py {addr_arg} -v {voltage} -o on"
     if not run_command(on_cmd):
         return False
 
@@ -133,13 +152,37 @@ def power_cycle(port: str, voltage: float = 13.5) -> bool:
     return True
 
 
+def init_power_supply(visa_address: str = None, voltage: float = 13.5) -> bool:
+    """初始化电源（打开输出）
+
+    Args:
+        visa_address: VISA 资源地址 (留空则自动搜索第一个设备)
+        voltage: 设置电压值 (V)
+    """
+    scripts_path = os.path.expanduser(POWER_SUPPLY_SCRIPTS)
+    addr_arg = f"-a {visa_address}" if visa_address else ""
+
+    cmd = f"cd {scripts_path} && uv run power_ctrl_cli.py {addr_arg} -v {voltage} -o on"
+    return run_command(cmd)
+
+
+def close_power_supply(visa_address: str = None) -> bool:
+    """关闭电源（关闭输出）"""
+    scripts_path = os.path.expanduser(POWER_SUPPLY_SCRIPTS)
+    addr_arg = f"-a {visa_address}" if visa_address else ""
+
+    cmd = f"cd {scripts_path} && uv run power_ctrl_cli.py {addr_arg} -o off"
+    return run_command(cmd)
+
+
 def measure_current() -> float:
     """使用示波器通道4测量电流平均值
 
     Note: 此函数调用底层脚本，实际使用时应通过 @oscilloscope skill 执行
     """
+    scripts_path = os.path.expanduser(OSCILLOSCOPE_SCRIPTS)
     print("  正在通过示波器通道4读取电流均值...")
-    cmd = "cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py mean -c 4"
+    cmd = f"cd {scripts_path} && uv run yokogawa_pyvisa.py mean -c 4"
     try:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
@@ -185,17 +228,16 @@ def main():
     # 设备连接检查
     print("\n[1/5] 检查设备连接...")
 
+    # 程控电阻使用串口
     res_port = input("  程控电阻串口号 (默认 /dev/ttyUSB0): ").strip() or "/dev/ttyUSB0"
-    pwr_port = input("  电源串口号 (默认 /dev/ttyUSB1): ").strip() or "/dev/ttyUSB1"
+
+    # 电源使用 VISA 地址（自动发现）
+    print("  电源使用 VISA 自动发现 (ITECH IT6722)")
+    pwr_visa_address = input("  或手动输入 VISA 地址 (留空自动搜索): ").strip()
 
     if not check_device(res_port):
-        print(f"  错误: 程控电阻 {res_port} 不存在")
-        print("  请使用 device-control skill 的 bind_usb.py 绑定设备")
-        sys.exit(1)
-
-    if not check_device(pwr_port):
-        print(f"  错误: 电源 {pwr_port} 不存在")
-        print("  请使用 device-control skill 的 bind_usb.py 绑定设备")
+        print(f"  警告: 程控电阻 {res_port} 不存在")
+        print("  请使用 @device-control skill 连接设备")
         sys.exit(1)
 
     print("  设备检查通过")
@@ -265,7 +307,7 @@ def main():
     # 初始化电源
     print("\n[4/5] 初始化电源...")
     voltage = float(input("  输入电源电压 (默认 13.5V): ").strip() or "13.5")
-    if not run_command(f"cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -v {voltage} -o on"):
+    if not init_power_supply(pwr_visa_address, voltage):
         print("  电源初始化失败")
         sys.exit(1)
 
@@ -292,7 +334,7 @@ def main():
                 continue
 
             # 上下电
-            if not power_cycle(pwr_port, voltage):
+            if not power_cycle(pwr_visa_address, voltage):
                 results[key] = "上下电失败"
                 continue
 
@@ -334,7 +376,7 @@ def main():
 
     # 关闭电源
     print("\n关闭电源...")
-    run_command(f"cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -o off")
+    close_power_supply(pwr_visa_address)
 
 
 def save_results(test_bins: list, results: dict, bin_config: dict, passed: int, total: int) -> str:
@@ -343,7 +385,7 @@ def save_results(test_bins: list, results: dict, bin_config: dict, passed: int, 
 
     # 生成文件名
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = f"~/test_script/res_ctrl/bin_test_result_{timestamp}.csv"
+    output_file = f"{RESULTS_DIR}/bin_test_result_{timestamp}.csv"
 
     abs_path = os.path.expanduser(output_file)
 

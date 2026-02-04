@@ -31,7 +31,7 @@ Automatically selects configuration file based on user input:
 
 | Keyword | LED Type | Config File | Current Multiplier |
 |---------|----------|-------------|---------------------|
-| LB, HB | Headlight | `bin_res.txt` | 1x |
+| LB, HB | Headlight | `bin_res_lbhb.txt` | 1x |
 | TI, DRL, PL | Signal LED | `bin_res_sigled.txt` | 64x |
 
 - **Headlight**: Single channel current configuration
@@ -43,7 +43,7 @@ Automatically selects configuration file based on user input:
 
 Run the automated test script:
 ```bash
-python ~/.claude/skills/bin_test/scripts/run_bin_test.py
+python3 ~/.claude/skills/bin_test/scripts/run_bin_test.py
 ```
 
 The script will prompt for:
@@ -59,26 +59,29 @@ Use device-control skills for device operations:
 ```bash
 # 1. Set BIN resistance (use @programmable-resistor skill)
 # Skill: programmable-resistor
-# Command: uv run resistance_cli.py -p /dev/ttyUSB0 -v 10000
+# Scripts: ~/.claude/skills/programmable-resistor/scripts/res_ctrl/
+# Command: cd ~/.claude/skills/programmable-resistor/scripts/res_ctrl/ && uv run resistance_cli.py -p /dev/ttyUSB0 -v 10000
 
 # 2. Power cycle (use @power-supply skill)
 # Skill: power-supply
-# Command: uv run power_ctrl_cli.py -v 13.5 -o on
+# Scripts: ~/.claude/skills/power-supply/scripts/power_ctrl/
+# Command: cd ~/.claude/skills/power-supply/scripts/power_ctrl/ && uv run power_ctrl_cli.py -v 13.5 -o on
 # Wait 2 seconds, then: uv run power_ctrl_cli.py -o off
 
 # 3. Measure current (use @oscilloscope skill)
 # Skill: oscilloscope
-# Command: uv run yokogawa_pyvisa.py mean -c 4
+# Scripts: ~/.claude/skills/oscilloscope/scripts/yokogawa/
+# Command: cd ~/.claude/skills/oscilloscope/scripts/yokogawa/ && uv run yokogawa_pyvisa.py mean -c 4
 ```
 
 ## Configuration Files
 
-| File | Purpose |
-|------|---------|
-| `~/test_script/res_ctrl/bin_res.txt` | Headlight BIN configuration (23 levels) |
-| `~/test_script/res_ctrl/bin_res_sigled.txt` | Signal LED BIN configuration (15 levels) |
+| Directory | Purpose |
+|-----------|---------|
+| `~/.claude/skills/bin_test/config/` | BIN configuration files (bin_res_lbhb.txt, etc.) |
+| `~/.claude/skills/bin_test/result/` | Test results (bin_test_result_*.csv) |
 
-**Note**: Configuration files are located in the `res_ctrl` subdirectory. See `@programmable-resistor` skill for script location.
+**Note**: Legacy files in `~/test_script/res_ctrl/` are still supported for backward compatibility.
 
 **Format**: `typical:min:max;theoretical_current`
 
@@ -103,32 +106,68 @@ This skill depends on `device-control` skill for all device operations:
 
 ## Device Connection Check
 
-Use device-control skill commands:
+Before running the test, ensure devices are connected to WSL.
 
+### Step 1: Check USBIPD Status on Windows
+
+Run this command in WSL to check device binding status:
 ```bash
-# Check serial devices
+pwsh.exe -c "usbipd list"
+```
+
+Expected output shows device states:
+- **Shared**: Device is bound but not attached to WSL
+- **Not shared**: Device needs to be bound first
+- **Persisted**: Device is remembered for automatic binding
+
+**Typical devices:**
+| Device | Type |
+|--------|------|
+| DLM series (Yokogawa) | Oscilloscope |
+| USB-SERIAL CH340 | Programmable Resistor |
+| USB Test and Measurement Device | Power Supply (ITECH) |
+
+### Step 2: Attach Devices to WSL
+
+If devices show **Shared** but not attached, run in Windows PowerShell:
+```powershell
+# Attach oscilloscope
+pwsh.exe -c "usbipd attach --wsl --busid <BUSID>"
+
+# Attach programmable resistor
+pwsh.exe -c "usbipd attach --wsl --busid <BUSID>"
+```
+
+If devices show **Not shared**, first bind them:
+```powershell
+# Bind device (run as Administrator)
+usbipd bind --busid <BUSID>
+
+# Then attach to WSL
+pwsh.exe -c "usbipd attach --wsl --busid <BUSID>"
+```
+
+### Step 3: Verify Connection in WSL
+
+After attaching, verify devices are accessible:
+```bash
+# List USB devices (should show RM550, Yokogawa, etc.)
+lsusb
+
+# Check serial devices (Programmable Resistor)
 ls /dev/ttyUSB*
 
-# Check programmable resistor (use @programmable-resistor skill)
-# Command: uv run resistance_cli.py -p /dev/ttyUSB0 -v OPEN
-
-# Check power supply (use @power-supply skill)
-# Command: uv run power_ctrl_cli.py -l
-
-# Check oscilloscope (use @oscilloscope skill)
-# Command: uv run yokogawa_pyvisa.py list
+# List VISA resources (Power Supply, Oscilloscope)
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_ctrl_cli -l"
 ```
 
-If devices are not listed:
-```bash
-python ~/.claude/skills/device-control/scripts/bind_usb.py
-```
+If devices are still not detected, use the `@device-control` skill for troubleshooting.
 
 ## Test Results
 
-Results are automatically saved to `~/test_script/res_ctrl/bin_test_result_YYYYMMDD_HHMMSS.csv`
+Results are automatically saved to `~/.claude/skills/bin_test/result/bin_test_result_YYYYMMDD_HHMMSS.csv`
 
-**Note**: Results are saved in the `res_ctrl` directory. See `@programmable-resistor` skill for script location.
+**Note**: Results are saved in the skill's result directory.
 
 **CSV Format**:
 ```csv

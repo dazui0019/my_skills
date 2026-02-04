@@ -1,0 +1,24 @@
+# Signal LED (TI/DRL/PL) BIN Configuration
+# Format: typical:min:max;theoretical_current (in mA, per channel)
+#
+# Note: For signal LED, current is multiplied by 64 (64 channels)
+# Expected total current = theoretical_current * 64
+#
+# Generated from C struct:
+# { centre, Min, Max, Current }
+#
+2500:2450:2550;30
+3158:3096:3221;35
+3889:3812:3966;40
+4706:4611:4802;45
+5625:5513:5738;45
+6667:6534:6801;55
+7857:7699:8018;60
+9231:9048:9417;65
+10833:10619:11053;70
+12727:12472:12989;75
+15000:14704:15304;80
+17778:17427:18137;85
+21250:20826:21686;90
+25714:25211:26232;95
+31667:31051:32301;100

@@ -41,8 +41,8 @@ usbipd bind --busid <BUSID>
 ```
 
 **步骤 2: 在 WSL 中 attach 设备**
-```powershell
-wsl -- usbipd attach --busid <BUSID> --distribution Ubuntu
+```shell
+pwsh.exe -c "usbipd attach --wsl --busid <BUSID>"
 ```
 
 **提示**：
@@ -50,21 +50,3 @@ wsl -- usbipd attach --busid <BUSID> --distribution Ubuntu
 - 电源：通常显示为 "USB Test and Measurement" 或 ITECH 型号
 - 程控电阻：通常显示为 "RM550" 或 "PRO" 开头
 
-## 未知设备处理
-
-如果用户需要的设备在 CLAUDE.md 中不存在：
-
-1. 询问用户：
-   - 设备型号/品牌
-   - 需要的操作功能
-   - 是否有现成的控制脚本或 API
-
-2. 根据回答创建新的设备 skill 或更新现有 skill
-
-## 更新 CLAUDE.md
-
-当用户通过 git clone 或其他方式添加新脚本到 ~/test_script 后：
-
-1. 扫描 ~/test_script 目录下的脚本文件
-2. 读取每个脚本的 README 或代码注释
-3. 更新 CLAUDE.md 文件
