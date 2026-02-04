@@ -10,10 +10,20 @@ This skill executes BIN resistance level testing to verify that the LED output c
 ## Workflow
 
 1. **Connection Check** - Ensure programmable resistor and power supply are connected
-2. **Set BIN Resistance** - Configure programmable resistor value based on test level
-3. **Power Cycle DUT** - Cycle power to apply the new resistance value
-4. **Measure Current** - Use oscilloscope channel 4 to read LED output current average
+2. **Set BIN Resistance** - Configure programmable resistor value using `@programmable-resistor` skill
+3. **Power Cycle DUT** - Cycle power using `@power-supply` skill to apply the new resistance value
+4. **Measure Current** - Use `@oscilloscope` skill to read LED output current average from channel 4
 5. **Result Validation** - Check if current is within ±5% tolerance
+
+## Device Control (via device-control skill)
+
+All device operations should use the corresponding device-control sub-skills:
+
+| Operation | Skill to Use |
+|-----------|--------------|
+| Set BIN resistance | `@programmable-resistor` |
+| Power on/off DUT | `@power-supply` |
+| Measure current (CH4) | `@oscilloscope` |
 
 ## LED Type Recognition
 
@@ -44,17 +54,21 @@ The script will prompt for:
 
 ### Manual Single Level Test
 
+Use device-control skills for device operations:
+
 ```bash
-# 1. Set BIN resistance
-cd ~/test_script/res_ctrl && uv run resistance_cli.py -p /dev/ttyUSB0 -v 10000
+# 1. Set BIN resistance (use @programmable-resistor skill)
+# Skill: programmable-resistor
+# Command: uv run resistance_cli.py -p /dev/ttyUSB0 -v 10000
 
-# 2. Power cycle
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -o off
-sleep 2
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -v 13.5 -o on
+# 2. Power cycle (use @power-supply skill)
+# Skill: power-supply
+# Command: uv run power_ctrl_cli.py -v 13.5 -o on
+# Wait 2 seconds, then: uv run power_ctrl_cli.py -o off
 
-# 3. Measure current (oscilloscope channel 4)
-cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py mean -c 4
+# 3. Measure current (use @oscilloscope skill)
+# Skill: oscilloscope
+# Command: uv run yokogawa_pyvisa.py mean -c 4
 ```
 
 ## Configuration Files
@@ -63,6 +77,8 @@ cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py mean -c 4
 |------|---------|
 | `~/test_script/res_ctrl/bin_res.txt` | Headlight BIN configuration (23 levels) |
 | `~/test_script/res_ctrl/bin_res_sigled.txt` | Signal LED BIN configuration (15 levels) |
+
+**Note**: Configuration files are located in the `res_ctrl` subdirectory. See `@programmable-resistor` skill for script location.
 
 **Format**: `typical:min:max;theoretical_current`
 
@@ -77,28 +93,30 @@ Example:
 
 ## Dependent Devices
 
-This skill depends on `device-control` skill:
+This skill depends on `device-control` skill for all device operations:
 
-| Device | Purpose |
-|--------|---------|
-| Programmable Resistor (RM550) | Set BIN resistance value |
-| Programmable Power Supply | Power the DUT, supports power cycling |
-| Yokogawa Oscilloscope CH4 | Measure LED output current average |
+| Device | Purpose | Skill to Use |
+|--------|---------|--------------|
+| Programmable Resistor (RM550) | Set BIN resistance value | `@programmable-resistor` |
+| Programmable Power Supply | Power the DUT, supports power cycling | `@power-supply` |
+| Yokogawa Oscilloscope CH4 | Measure LED output current average | `@oscilloscope` |
 
 ## Device Connection Check
+
+Use device-control skill commands:
 
 ```bash
 # Check serial devices
 ls /dev/ttyUSB*
 
-# Check programmable resistor
-cd ~/test_script/res_ctrl && uv run resistance_cli.py -p /dev/ttyUSB0 -v OPEN
+# Check programmable resistor (use @programmable-resistor skill)
+# Command: uv run resistance_cli.py -p /dev/ttyUSB0 -v OPEN
 
-# Check power supply
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -l
+# Check power supply (use @power-supply skill)
+# Command: uv run power_ctrl_cli.py -l
 
-# Check oscilloscope
-cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py list
+# Check oscilloscope (use @oscilloscope skill)
+# Command: uv run yokogawa_pyvisa.py list
 ```
 
 If devices are not listed:
@@ -109,6 +127,8 @@ python ~/.claude/skills/device-control/scripts/bind_usb.py
 ## Test Results
 
 Results are automatically saved to `~/test_script/res_ctrl/bin_test_result_YYYYMMDD_HHMMSS.csv`
+
+**Note**: Results are saved in the `res_ctrl` directory. See `@programmable-resistor` skill for script location.
 
 **CSV Format**:
 ```csv

@@ -4,8 +4,8 @@
 
 ## 设备脚本
 
-- `~/test_script/yokogawa/yokogawa.py` - Windows 版本
-- `~/test_script/yokogawa/yokogawa_pyvisa.py` - Linux 版本
+- `~/.claude/skills/oscilloscope/scripts/yokogawa/yokogawa.py` - Windows 版本
+- `~/.claude/skills/oscilloscope/scripts/yokogawa/yokogawa_pyvisa.py` - Linux 版本
 
 ## 主要功能
 
@@ -19,26 +19,26 @@
 
 ```bash
 # 读取通道4均值 (默认仅输出数值)
-cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py mean -c 4
+cd ~/.claude/skills/oscilloscope/scripts/yokogawa && uv run yokogawa_pyvisa.py mean -c 4
 
 # 详细输出模式
-cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py mean -c 4 -v
+cd ~/.claude/skills/oscilloscope/scripts/yokogawa && uv run yokogawa_pyvisa.py mean -c 4 -v
 
 # 截图保存
-cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py shot -o screen.png
+cd ~/.claude/skills/oscilloscope/scripts/yokogawa && uv run yokogawa_pyvisa.py shot -o screen.png
 
 # 列出可用设备
-cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py list
+cd ~/.claude/skills/oscilloscope/scripts/yokogawa && uv run yokogawa_pyvisa.py list
 ```
 
 ### Windows
 
 ```bash
 # 读取均值
-cd ~/test_script/yokogawa && uv run yokogawa.py mean
+cd ~/.claude/skills/oscilloscope/scripts/yokogawa && uv run yokogawa.py mean
 
 # 指定IP截图
-cd ~/test_script/yokogawa && uv run yokogawa.py --ip 192.168.1.100 shot
+cd ~/.claude/skills/oscilloscope/scripts/yokogawa && uv run yokogawa.py --ip 192.168.1.100 shot
 ```
 
 ## 注意事项

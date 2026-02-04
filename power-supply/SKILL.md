@@ -4,8 +4,8 @@
 
 ## 设备脚本
 
-- `~/test_script/power_ctrl/power_ctrl_cli.py` - 电源控制命令行工具
-- `~/test_script/power_ctrl/power_supply_control.py` - 电源控制库及交互式工具
+- `~/.claude/skills/power-supply/scripts/power_ctrl/power_ctrl_cli.py` - 电源控制命令行工具
+- `~/.claude/skills/power-supply/scripts/power_ctrl/power_supply_control.py` - 电源控制库及交互式工具
 
 ## 主要功能
 
@@ -19,22 +19,22 @@
 
 ```bash
 # 列出所有可用设备
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -l
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_ctrl_cli.py -l
 
 # 设置 5V，限流 1A 并打开输出
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -v 5.0 -c 1.0 -o on
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_ctrl_cli.py -v 5.0 -c 1.0 -o on
 
 # 仅设置 9V 电压（不修改电流，不改变输出状态）
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -v 9.0
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_ctrl_cli.py -v 9.0
 
 # 关闭输出
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -o off
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_ctrl_cli.py -o off
 
 # 仅测量当前状态
-cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -m
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_ctrl_cli.py -m
 
 # 交互式模式
-cd ~/test_script/power_ctrl && uv run power_supply_control.py
+cd ~/.claude/skills/power-supply/scripts/power_ctrl && uv run power_supply_control.py
 ```
 
 ## 电源操作规则

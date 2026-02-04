@@ -4,8 +4,8 @@
 
 ## 设备脚本
 
-- `~/test_script/res_ctrl/resistance_cli.py` - 通用电阻控制 CLI 工具
-- `~/test_script/res_ctrl/temp_resistance_cli.py` - 基于温度的电阻设置工具
+- `~/.claude/skills/programmable-resistor/scripts/res_ctrl/resistance_cli.py` - 通用电阻控制 CLI 工具
+- `~/.claude/skills/programmable-resistor/scripts/res_ctrl/temp_resistance_cli.py` - 基于温度的电阻设置工具
 
 ## 主要功能
 
@@ -17,7 +17,7 @@
 ## 常用命令
 
 ```bash
-cd ~/test_script/res_ctrl
+cd ~/.claude/skills/programmable-resistor/scripts/res_ctrl
 
 # 设置电阻为 1000 欧姆 (必须用 -p 指定串口号)
 uv run resistance_cli.py -p /dev/ttyUSB0 -v 1000

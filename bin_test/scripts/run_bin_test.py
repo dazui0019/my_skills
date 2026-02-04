@@ -3,12 +3,15 @@
 BIN Test Runner - BIN电阻档位自动测试工具
 
 此脚本执行 BIN 电阻档位测试：
-1. 设置程控电阻值
-2. 重新上下电使电阻生效
-3. 使用示波器测量 LED 电流平均值
+1. 设置程控电阻值 (使用 programmable-resistor skill)
+2. 重新上下电使电阻生效 (使用 power-supply skill)
+3. 使用示波器测量 LED 电流平均值 (使用 oscilloscope skill)
 4. 验证结果是否在 ±5% 误差范围内
 
-每个档位测试 3 个电阻值：典型值、最小值、最大值（覆盖采样误差范围）
+设备操作说明：
+- 设置电阻: 使用 @programmable-resistor skill
+- 电源控制: 使用 @power-supply skill
+- 电流测量: 使用 @oscilloscope skill (通道4)
 """
 
 import subprocess
@@ -100,14 +103,20 @@ def check_device(path: str) -> bool:
 
 
 def set_resistance(port: str, ohms: int) -> bool:
-    """设置程控电阻值"""
+    """设置程控电阻值
+
+    Note: 此函数调用底层脚本，实际使用时应通过 @programmable-resistor skill 执行
+    """
     print(f"  设置电阻: {ohms}Ω")
     cmd = f"cd ~/test_script/res_ctrl && uv run resistance_cli.py -p {port} -v {ohms}"
     return run_command(cmd)
 
 
 def power_cycle(port: str, voltage: float = 13.5) -> bool:
-    """电源上下电"""
+    """电源上下电
+
+    Note: 此函数调用底层脚本，实际使用时应通过 @power-supply skill 执行
+    """
     print("  关闭电源...")
     off_cmd = f"cd ~/test_script/power_ctrl && uv run power_ctrl_cli.py -o off"
     if not run_command(off_cmd):
@@ -125,7 +134,10 @@ def power_cycle(port: str, voltage: float = 13.5) -> bool:
 
 
 def measure_current() -> float:
-    """使用示波器通道4测量电流平均值"""
+    """使用示波器通道4测量电流平均值
+
+    Note: 此函数调用底层脚本，实际使用时应通过 @oscilloscope skill 执行
+    """
     print("  正在通过示波器通道4读取电流均值...")
     cmd = "cd ~/test_script/yokogawa && uv run yokogawa_pyvisa.py mean -c 4"
     try:
@@ -178,12 +190,12 @@ def main():
 
     if not check_device(res_port):
         print(f"  错误: 程控电阻 {res_port} 不存在")
-        print("  请使用 device-control 的 bind_usb.py 绑定设备")
+        print("  请使用 device-control skill 的 bind_usb.py 绑定设备")
         sys.exit(1)
 
     if not check_device(pwr_port):
         print(f"  错误: 电源 {pwr_port} 不存在")
-        print("  请使用 device-control 的 bind_usb.py 绑定设备")
+        print("  请使用 device-control skill 的 bind_usb.py 绑定设备")
         sys.exit(1)
 
     print("  设备检查通过")
