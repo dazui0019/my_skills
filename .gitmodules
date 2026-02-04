@@ -1,0 +1,9 @@
+[submodule "power-supply/scripts/power_ctrl"]
+	path = power-supply/scripts/power_ctrl
+	url = https://github.com/dazui0019/power_ctrl.git
+[submodule "oscilloscope/scripts/yokogawa"]
+	path = oscilloscope/scripts/yokogawa
+	url = https://github.com/dazui0019/yokogawa.git
+[submodule "programmable-resistor/scripts/res_ctrl"]
+	path = programmable-resistor/scripts/res_ctrl
+	url = https://github.com/dazui0019/res_ctrl.git
