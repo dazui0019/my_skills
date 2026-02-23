@@ -22,8 +22,16 @@ python "C:/Users/dazui/.claude/skills/gd32-cmake-generator/scripts/generate_proj
 ```
 
 **示例：**
-- `python "C:/Users/dazui/.claude/skills/gd32-cmake-generator/scripts/generate_project.py" E:/Downloads/GD32F4xx_Firmware_Library_V3.3.3 GD32F407`
-- `python "C:/Users/dazui/.claude/skills/gd32-cmake-generator/scripts/generate_project.py" E:/Downloads/GD32F4xx_Firmware_Library_V3.3.3 GD32F405 my_project`
+- 使用基础目录（自动选择）: `python "C:/Users/dazui/.claude/skills/gd32-cmake-generator/scripts/generate_project.py" E:/File/MCU/GD32 GD32F407`
+- 自定义完整路径: `python "C:/Users/dazui/.claude/skills/gd32-cmake-generator/scripts/generate_project.py" E:/Downloads/GD32F4xx_Firmware_Library_V3.3.3 GD32F407`
+- 指定项目名称: `python "C:/Users/dazui/.claude/skills/gd32-cmake-generator/scripts/generate_project.py" E:/File/MCU/GD32 GD32F405 my_project`
+
+### 自动路径选择
+
+脚本会根据芯片型号自动选择对应的固件库：
+- GD32F4xx 系列 → `GD32F4xx_Firmware_Library`
+- GD32F1xx 系列 → `GD32F1xx_Firmware_Library`
+- GD32F3xx 系列 → `GD32F3xx_Firmware_Library`
 
 ## 支持的芯片型号
 

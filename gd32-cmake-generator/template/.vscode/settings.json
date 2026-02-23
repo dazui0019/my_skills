@@ -1,0 +1,18 @@
+{
+    "actionButtons": {
+        
+        "commands": [
+            {
+                "cwd": "${workspaceFolder}",
+                "name": "\ud83e\udd70Flash",
+                "color": "white",
+                "singleInstance": true,
+                "useVsCodeApi": false,
+                "command": "pyocd flash -t <chip> --pack '<pack_file>' ./build/<hex_file>"
+            }
+        ],
+        "defaultColor": "white",
+        "reloadButton": "\ud83e\udee1",
+        "loadNpmCommands": false
+    }
+}

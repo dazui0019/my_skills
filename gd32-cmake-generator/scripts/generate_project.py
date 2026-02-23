@@ -6,14 +6,27 @@ Usage:
     python generate_project.py <firmware_lib_path> <chip_model> [project_name]
 
 Examples:
+    python generate_project.py E:/File/MCU/GD32 GD32F407
+    python generate_project.py E:/File/MCU/GD32 GD32F405 my_project
     python generate_project.py E:/Downloads/GD32F4xx_Firmware_Library GD32F407
-    python generate_project.py E:/Downloads/GD32F4xx_Firmware_Library GD32F405 my_project
 """
 
 import os
 import sys
 import shutil
+import json
 from pathlib import Path
+
+
+# Default library base path
+DEFAULT_LIB_BASE = Path("E:/File/MCU/GD32")
+
+# Chip series to firmware library mapping
+CHIP_SERIES_MAP = {
+    "GD32F4": "GD32F4xx_Firmware_Library",
+    "GD32F1": "GD32F1xx_Firmware_Library",
+    "GD32F3": "GD32F3xx_Firmware_Library",
+}
 
 
 # Chip configuration mapping
@@ -236,8 +249,11 @@ cmake --build .\\build\\ --config Release
 ## Flash
 
 ```bash
+# Using pyocd
+pyocd flash -t {chip_model} build/Release/{project_name}.bin
+
 # Using J-Link
-JLinkGDBServer -device GD32F407VK -if SWD -speed 4000
+JLinkGDBServer -device {chip_model}VK -if SWD -speed 4000
 
 # Using ST-Link
 openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c "program build/Release/{project_name}.elf verify reset exit"
@@ -248,6 +264,7 @@ openocd -f interface/stlink.cfg -f target/stm32f4x.cfg -c "program build/Release
 - arm-none-eabi-gcc
 - CMake
 - Ninja
+- pyocd (optional)
 '''
     return '''/*!
     \\file    main.h
@@ -516,16 +533,90 @@ void SysTick_Handler(void)
 '''
 
 
+def find_pack_file(chip_model: str) -> str:
+    """Find the CMSIS pack file for the given chip model."""
+    # Common locations for CMSIS pack files
+    search_paths = [
+        Path.home() / "AppData" / "Local" / "cmsis-pack-manager" / "cmsis-pack-manager" / "Pack",
+    ]
+
+    # Chip manufacturer to pack name mapping
+    chip_to_pack = {
+        "GD32F4": "GigaDevice.GD32F4xx_DFP",
+        "GD32F1": "GigaDevice.GD32F1xx_DFP",
+        "GD32F3": "GigaDevice.GD32F3xx_DFP",
+    }
+
+    # Determine pack prefix based on chip model
+    pack_prefix = None
+    for prefix, pack_name in chip_to_pack.items():
+        if chip_model.startswith(prefix):
+            pack_prefix = pack_name
+            break
+
+    if not pack_prefix:
+        return ""
+
+    # Search for pack file
+    for search_path in search_paths:
+        if not search_path.exists():
+            continue
+
+        # Look for pack files matching the pattern
+        for pack_dir in search_path.rglob(f"{pack_prefix}*"):
+            if pack_dir.is_file() and pack_dir.suffix == ".pack":
+                return str(pack_dir)
+            # Check if it's a directory with .pack inside
+            for pack_file in pack_dir.rglob("*.pack"):
+                return str(pack_file)
+
+    print(f"Warning: Could not find pack file for {chip_model}")
+    return ""
+
+
+def generate_vscode_settings(chip_model: str, project_name: str):
+    """Generate settings.json with replaced variables."""
+    # Get skill template directory
+    skill_dir = Path(__file__).parent.parent
+    template_settings = skill_dir / "template" / ".vscode" / "settings.json"
+
+    if not template_settings.exists():
+        return None
+
+    # Read template
+    with open(template_settings, "r", encoding="utf-8") as f:
+        settings_content = f.read()
+
+    # Find pack file
+    pack_file = find_pack_file(chip_model)
+
+    # Replace variables
+    replacements = {
+        "<chip>": chip_model,
+        "<pack_file>": pack_file,
+        "<hex_file>": f"{project_name}.hex",
+    }
+
+    for placeholder, value in replacements.items():
+        settings_content = settings_content.replace(placeholder, value)
+
+    return settings_content
+
+
 def generate_project(firmware_path: str, chip_model: str, project_name: str = "gd32_project"):
     """Generate the complete GD32 project."""
 
     firmware_path = Path(firmware_path)
     project_dir = Path.cwd() / project_name
 
+    # Check if target directory is not empty
+    if project_dir.exists() and any(project_dir.iterdir()):
+        raise ValueError(f"Target directory '{project_dir}' is not empty. Please remove it first or choose a different project name.")
+
     # Get skill template directory
     skill_dir = Path(__file__).parent.parent
 
-    print(f"Generating GD32 project: {project_name}")
+    print(f"Generating GD32 project: {project_dir}")
     print(f"Chip model: {chip_model}")
     print(f"Firmware library: {firmware_path}")
 
@@ -593,6 +684,14 @@ def generate_project(firmware_path: str, chip_model: str, project_name: str = "g
         print("Copying .vscode files...")
         copy_directory(template_vscode_dir, project_dir / ".vscode")
 
+        # Generate and write settings.json with replaced variables
+        settings_content = generate_vscode_settings(chip_model, project_name)
+        if settings_content:
+            print("Updating .vscode/settings.json with chip configuration...")
+            settings_path = project_dir / ".vscode" / "settings.json"
+            with open(settings_path, "w", encoding="utf-8") as f:
+                f.write(settings_content)
+
     print("Copying Core files from template...")
 
     # Determine template subdirectory based on chip series
@@ -625,20 +724,49 @@ def generate_project(firmware_path: str, chip_model: str, project_name: str = "g
     print(f"  cmake --build .")
 
 
+def get_firmware_path(input_path: str, chip_model: str) -> Path:
+    """Get firmware library path based on input and chip model."""
+    input_path = Path(input_path)
+
+    # If input is already a firmware library directory (contains Firmware subfolder)
+    if (input_path / "Firmware").exists():
+        return input_path
+
+    # If input is a base directory like E:\File\MCU\GD32, auto-detect based on chip series
+    for series_prefix, lib_folder in CHIP_SERIES_MAP.items():
+        if chip_model.startswith(series_prefix):
+            firmware_path = input_path / lib_folder
+            if firmware_path.exists():
+                return firmware_path
+            # Also check if lib_folder exists directly in the input directory
+            for item in input_path.iterdir():
+                if item.is_dir() and lib_folder.lower() in item.name.lower():
+                    return item
+
+    # Fallback: return input path as-is
+    return input_path
+
+
 def main():
     if len(sys.argv) < 3:
         print(__doc__)
+        print(f"\nDefault library base: {DEFAULT_LIB_BASE}")
         print("\nSupported chips:")
         for chip in CHIP_CONFIG:
             print(f"  - {chip}")
         sys.exit(1)
 
-    firmware_path = sys.argv[1]
+    input_path = sys.argv[1]
     chip_model = sys.argv[2]
     project_name = sys.argv[3] if len(sys.argv) > 3 else "gd32_project"
 
+    # Get firmware path based on input and chip model
+    firmware_path = get_firmware_path(input_path, chip_model)
+
+    print(f"Using firmware library: {firmware_path}")
+
     try:
-        generate_project(firmware_path, chip_model, project_name)
+        generate_project(str(firmware_path), chip_model, project_name)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
