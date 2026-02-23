@@ -587,13 +587,15 @@ def generate_vscode_settings(chip_model: str, project_name: str):
     with open(template_settings, "r", encoding="utf-8") as f:
         settings_content = f.read()
 
-    # Find pack file
+    # Find pack file and escape backslashes for JSON
     pack_file = find_pack_file(chip_model)
+    # Escape backslashes for JSON format (Windows paths)
+    pack_file_escaped = pack_file.replace("\\", "\\\\")
 
     # Replace variables
     replacements = {
         "<chip>": chip_model,
-        "<pack_file>": pack_file,
+        "<pack_file>": pack_file_escaped,
         "<hex_file>": f"{project_name}.hex",
     }
 
